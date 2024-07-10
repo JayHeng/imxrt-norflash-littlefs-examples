@@ -270,10 +270,12 @@ static int32_t mflash_drv_init_internal(void)
     uint32_t primask = __get_PRIMASK();
     __asm("cpsid i");
 
+#if defined(XIP_EXTERNAL_FLASH) && (XIP_EXTERNAL_FLASH == 1)
     /* Wait for bus to be idle before changing flash configuration. */
     while (false == FLEXSPI_GetBusIdleStatus(MFLASH_FLEXSPI))
     {
     }
+#endif
 
 #ifndef XIP_EXTERNAL_FLASH
     flexspi_config_t config;
