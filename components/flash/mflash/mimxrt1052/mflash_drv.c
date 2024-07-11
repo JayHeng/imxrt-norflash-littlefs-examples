@@ -277,7 +277,7 @@ static int32_t mflash_drv_init_internal(void)
     }
 #endif
 
-#ifndef XIP_EXTERNAL_FLASH
+#if !(defined(XIP_EXTERNAL_FLASH) && (XIP_EXTERNAL_FLASH == 1))
     flexspi_config_t config;
     /* Get FLEXSPI default settings and configure the flexspi. */
     FLEXSPI_GetDefaultConfig(&config);
