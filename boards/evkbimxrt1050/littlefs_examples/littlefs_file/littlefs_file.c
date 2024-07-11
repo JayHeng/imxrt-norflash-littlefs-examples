@@ -64,10 +64,7 @@ SHELL_COMMAND_DEFINE(mkdir, "\r\n\"mkdir <path>\": Creates a new directory\r\n",
 SHELL_COMMAND_DEFINE(write, "\r\n\"write <path> <text>\": Writes/appends text to a file\r\n", lfs_write_handler, 2);
 SHELL_COMMAND_DEFINE(cat, "\r\n\"cat <path>\": Prints file content\r\n", lfs_cat_handler, 1);
 
-SDK_ALIGN(static uint8_t s_shellHandleBuffer[SHELL_HANDLE_SIZE], 4);
 static shell_handle_t s_shellHandle;
-
-extern serial_handle_t g_serialHandle;
 
 /*******************************************************************************
  * Code
@@ -369,27 +366,104 @@ int main(void)
         PRINTF("LFS storage init failed: %i\r\n", status);
         return status;
     }
+    else
+    {
+        int res;
 
-    /* Init SHELL */
-    s_shellHandle = &s_shellHandleBuffer[0];
-    SHELL_Init(s_shellHandle, g_serialHandle, "LFS>> ");
+        res = lfs_format(&lfs, &cfg);
+        if (res)
+        {
+            PRINTF("\rError formatting LFS: %d\r\n", res);
+            return kStatus_SHELL_Success;
+        }
 
-    SHELL_RegisterCommand(s_shellHandle, SHELL_COMMAND(format));
-    SHELL_RegisterCommand(s_shellHandle, SHELL_COMMAND(mount));
-    SHELL_RegisterCommand(s_shellHandle, SHELL_COMMAND(unmount));
-    SHELL_RegisterCommand(s_shellHandle, SHELL_COMMAND(umount));
-    SHELL_RegisterCommand(s_shellHandle, SHELL_COMMAND(cd));
-    SHELL_RegisterCommand(s_shellHandle, SHELL_COMMAND(ls));
-    SHELL_RegisterCommand(s_shellHandle, SHELL_COMMAND(dir));
-    SHELL_RegisterCommand(s_shellHandle, SHELL_COMMAND(rm));
-    SHELL_RegisterCommand(s_shellHandle, SHELL_COMMAND(mkdir));
-    SHELL_RegisterCommand(s_shellHandle, SHELL_COMMAND(write));
-    SHELL_RegisterCommand(s_shellHandle, SHELL_COMMAND(cat));
+        res = lfs_mount(&lfs, &cfg);
+        if (res)
+        {
+            PRINTF("\rError mounting LFS\r\n");
+            return kStatus_SHELL_Success;
+        }
+        else
+        {
+            lfs_mounted = 1;
+        }
+
+        res = lfs_mkdir(&lfs, "mydir");
+        if (res)
+        {
+            PRINTF("\rError creating directory: %i\r\n", res);
+            return kStatus_SHELL_Success;
+        }
+        else
+        {
+            PRINTF("\r/mydir directory is created\r\n");
+        }
+
+        lfs_file_t file;
+        res = lfs_file_open(&lfs, &file, "mydir/my.txt", LFS_O_WRONLY | LFS_O_APPEND | LFS_O_CREAT);
+        if (res)
+        {
+            PRINTF("\rError opening file: %i\r\n", res);
+            return kStatus_SHELL_Success;
+        }
+
+        char testChar[] = "hello world";
+        res = lfs_file_write(&lfs, &file, testChar, strlen(testChar));
+        if (res > 0)
+            res = lfs_file_write(&lfs, &file, "\r\n", 2);
+
+        if (res < 0)
+        {
+            PRINTF("\rError writing file: %i\r\n", res);
+            return kStatus_SHELL_Success;
+        }
+        else
+        {
+            PRINTF("\r'hello world' are written into /mydir/my.txt\r\n");
+        }
+
+        res = lfs_file_close(&lfs, &file);
+        if (res)
+        {
+            PRINTF("\rError closing file: %i\r\n", res);
+            return kStatus_SHELL_Success;
+        }
+
+        res = lfs_file_open(&lfs, &file, "mydir/my.txt", LFS_O_RDONLY);
+        if (res)
+        {
+            PRINTF("\rError opening file: %i\r\n", res);
+            return kStatus_SHELL_Success;
+        }
+
+        char buf[16];
+        PRINTF("\rGetting content from /mydir/my.txt\r\n");
+        do
+        {
+            res = lfs_file_read(&lfs, &file, buf, sizeof(buf));
+            if (res < 0)
+            {
+                PRINTF("\rError reading file: %i\r\n", res);
+                break;
+            }
+            {
+                int tempRes = res;
+                char *tempBuf = &buf[0];
+                while (tempRes--)
+                {
+                   PRINTF("%c", *(tempBuf++));
+                }
+            }
+        } while (res);
+
+        res = lfs_file_close(&lfs, &file);
+        if (res)
+        {
+            PRINTF("\rError closing file: %i\r\n", res);
+        }
+    }
 
     while (1)
     {
-#if !(defined(SHELL_NON_BLOCKING_MODE) && (SHELL_NON_BLOCKING_MODE > 0U))
-        SHELL_Task(s_shellHandle);
-#endif
     }
 }
