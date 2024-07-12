@@ -81,6 +81,12 @@ initialize by copy {
   object mflash_drv.o,
   object fsl_flexspi.o,
   object fsl_clock.o,
+  object fsl_cache.o,
+
+  //object heap0.o,
+  //object lfs_mflash.o,
+  //object lfs.o,
+  //object lfs_util.o,
   section .textrw
 };
 do not initialize  { section .noinit };

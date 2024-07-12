@@ -12,6 +12,7 @@
 #include "fsl_shell.h"
 #include "lfs.h"
 #include "lfs_mflash.h"
+#include "peripherals.h"
 
 #include "pin_mux.h"
 #include "clock_config.h"
@@ -358,6 +359,9 @@ int main(void)
     CLOCK_SetMux(kCLOCK_FlexspiMux, 0x3); /* Choose PLL3 PFD0 clock as flexspi source clock. */
     CLOCK_SetDiv(kCLOCK_FlexspiDiv, 3);   /* flexspi clock 83M, DDR mode, internal clock 42M. */
 
+    PRINTF("LFS file r/w example start\r\n");
+    PRINTF("LFS mflash offset: 0x%x\r\n", LITTLEFS_START_ADDR);
+    
     lfs_get_default_config(&cfg);
 
     status = lfs_storage_init(&cfg);
@@ -376,6 +380,10 @@ int main(void)
             PRINTF("\rError formatting LFS: %d\r\n", res);
             return kStatus_SHELL_Success;
         }
+        else
+        {
+            PRINTF("\rLFS formated\r\n");
+        }
 
         res = lfs_mount(&lfs, &cfg);
         if (res)
@@ -385,6 +393,7 @@ int main(void)
         }
         else
         {
+            PRINTF("\rLFS mounted\r\n");
             lfs_mounted = 1;
         }
 
@@ -460,6 +469,17 @@ int main(void)
         if (res)
         {
             PRINTF("\rError closing file: %i\r\n", res);
+            return kStatus_SHELL_Success;
+        }
+
+        res = lfs_unmount(&lfs);
+        if (res)
+        {
+            PRINTF("\rError unmounting LFS: %i\r\n", res);
+        }
+        else
+        {
+            PRINTF("\rLFS unmounted\r\n");
         }
     }
 
