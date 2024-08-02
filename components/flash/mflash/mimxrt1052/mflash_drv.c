@@ -330,9 +330,10 @@ int32_t mflash_drv_init(void)
 /* Internal - erase single sector */
 static int32_t mflash_drv_sector_erase_internal(uint32_t sector_addr)
 {
+#ifdef FLASH_OPERATION_MASK_GLOBAL_IRQ_ENABLE
     uint32_t primask = __get_PRIMASK();
-
     __asm("cpsid i");
+#endif
 
     status_t status;
     status = flexspi_nor_flash_sector_erase(MFLASH_FLEXSPI, sector_addr);
@@ -342,10 +343,12 @@ static int32_t mflash_drv_sector_erase_internal(uint32_t sector_addr)
 
     DCACHE_InvalidateByRange(MFLASH_BASE_ADDRESS + sector_addr, MFLASH_SECTOR_SIZE);
 
+#ifdef FLASH_OPERATION_MASK_GLOBAL_IRQ_ENABLE
     if (primask == 0)
     {
         __asm("cpsie i");
     }
+#endif
 
     /* Flush pipeline to allow pending interrupts take place
      * before starting next loop */
@@ -374,8 +377,10 @@ static int32_t mflash_drv_page_program_internal(uint32_t page_addr, uint32_t *da
     uint32_t div_orig;
     uint32_t div_restore = 0;
 
+#ifdef FLASH_OPERATION_MASK_GLOBAL_IRQ_ENABLE
     uint32_t primask = __get_PRIMASK();
     __asm("cpsid i");
+#endif
 
     /* CLOCK_GetClockRootFreq may be executed from FLASH, called here, avoid calling it later on */
     freq_orig = CLOCK_GetClockRootFreq(kCLOCK_FlexspiClkRoot);
@@ -444,10 +449,12 @@ static int32_t mflash_drv_page_program_internal(uint32_t page_addr, uint32_t *da
 
     DCACHE_InvalidateByRange(MFLASH_BASE_ADDRESS + page_addr, MFLASH_PAGE_SIZE);
 
+#ifdef FLASH_OPERATION_MASK_GLOBAL_IRQ_ENABLE
     if (primask == 0)
     {
         __asm("cpsie i");
     }
+#endif
 
     /* Flush pipeline to allow pending interrupts take place
      * before starting next loop */
