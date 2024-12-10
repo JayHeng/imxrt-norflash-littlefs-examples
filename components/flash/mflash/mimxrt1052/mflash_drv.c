@@ -137,7 +137,6 @@ static uint32_t customLUT[CUSTOM_LUT_LENGTH] = {
 static status_t flexspi_nor_wait_bus_busy(FLEXSPI_Type *base)
 {
     /* Wait status ready. */
-    bool isBusy;
     uint32_t readValue = 0;
     status_t status;
     flexspi_transfer_t flashXfer;
@@ -150,30 +149,25 @@ static status_t flexspi_nor_wait_bus_busy(FLEXSPI_Type *base)
     flashXfer.data          = &readValue;
     flashXfer.dataSize      = 2;
 
-    do
+    status = FLEXSPI_TransferBlocking(base, &flashXfer);
+
+    if (status != kStatus_Success)
     {
-        status = FLEXSPI_TransferBlocking(base, &flashXfer);
+        return status;
+    }
+    if (readValue & 0x8000)
+    {
+        status = kStatus_Success;
+    }
+    else
+    {
+        status = kStatus_Fail;
+    }
 
-        if (status != kStatus_Success)
-        {
-            return status;
-        }
-        if (readValue & 0x8000)
-        {
-            isBusy = false;
-        }
-        else
-        {
-            isBusy = true;
-        }
-
-        if (readValue & 0x3200)
-        {
-            status = kStatus_Fail;
-            break;
-        }
-
-    } while (isBusy);
+    if (readValue & 0x3200)
+    {
+        status = kStatus_Fail;
+    }
 
     return status;
 }
@@ -220,7 +214,10 @@ static status_t flexspi_nor_flash_sector_erase(FLEXSPI_Type *base, uint32_t addr
         return status;
     }
 
-    status = flexspi_nor_wait_bus_busy(base);
+    while (flexspi_nor_wait_bus_busy(base) == kStatus_Fail)
+    {
+        
+    }
 
     return status;
 }
@@ -253,7 +250,10 @@ static status_t flexspi_nor_flash_page_program(FLEXSPI_Type *base, uint32_t addr
         return status;
     }
 
-    status = flexspi_nor_wait_bus_busy(base);
+    while (flexspi_nor_wait_bus_busy(base) == kStatus_Fail)
+    {
+        
+    }
 
     return status;
 }
